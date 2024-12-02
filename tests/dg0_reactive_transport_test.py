@@ -6,13 +6,13 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
-from retropy.solver import TransientSolver
+from retropy.solver import PETScSolver
 from retropy.manager import XDMFManager
 from retropy.benchmarks import ReactingSpecies
 
 
 class DG0ReactiveTransportTest(
-    ReactingSpecies, DG0Kernel, TransientSolver, XDMFManager
+    ReactingSpecies, DG0Kernel, PETScSolver, XDMFManager
 ):
     def __init__(self, nx, is_output):
         marked_mesh = self.get_mesh_and_markers(nx, "triangle")

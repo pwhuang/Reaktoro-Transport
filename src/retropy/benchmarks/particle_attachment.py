@@ -160,6 +160,7 @@ class ParticleAttachment(TracerTransportProblem):
         return self.Da_att * (one - S) * C - self.Da_det * self._M * S
 
     def add_physics_to_form(self, u, kappa=1.0, f_id=0):
+        self.add_time_derivatives(u)
         self.add_explicit_advection(u, kappa, marker=0, f_id=f_id)
 
         S, C = self.get_trial_function()[1], u[0]  # implicit in S, explicit in C

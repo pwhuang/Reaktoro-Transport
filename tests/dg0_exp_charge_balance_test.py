@@ -48,7 +48,6 @@ class DG0ExpChargeBalanceTest(
         one = Constant(self.mesh, 1.0)
 
         self.add_explicit_charge_balanced_diffusion(u, kappa=one - theta, marker=0)
-        # self.add_semi_implicit_charge_balanced_diffusion(u, kappa=theta, marker=0)
         self.add_implicit_charge_balanced_diffusion(kappa=theta, marker=0)
 
     def mpl_output(self):

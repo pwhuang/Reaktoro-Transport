@@ -77,6 +77,7 @@ class ReactingSpecies(TracerTransportProblem):
         )
 
     def add_physics_to_form(self, u, kappa=1.0, f_id=0):
+        self.add_time_derivatives(u)
         self.add_explicit_advection(u, kappa, marker=0, f_id=f_id)
         self.add_outflow_bc(f_id)
 

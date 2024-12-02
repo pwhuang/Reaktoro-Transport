@@ -5,7 +5,7 @@ from . import *
 from mpi4py import MPI
 from petsc4py import PETSc
 
-class TransientNLSolver(TransientSolver):
+class TransientNLSolver(PETScSolver):
     """A solver class that is used as a mixin for problem classes."""
 
     num_forms = 1
@@ -19,9 +19,8 @@ class TransientNLSolver(TransientSolver):
         self.__u1 = Function(self.__func_space)
 
         self.__du = TrialFunction(self.__func_space)
-        self._TransientSolver__u1 = self.__u1
+        self._PETScSolver__u1 = self.__u1
 
-        self.add_time_derivatives(self.__u0)
         self.add_physics_to_form(self.__u0, kappa=Constant(self.mesh, 1.0), f_id=0)
 
         self.__forms = self.get_forms()
@@ -76,7 +75,7 @@ class TransientNLSolver(TransientSolver):
         opts[f"{option_prefix}ksp_rtol"] = 1e-10
         opts[f"{option_prefix}ksp_atol"] = 1e-12
         opts[f"{option_prefix}ksp_max_it"] = 1000
-        # opts[f"{option_prefix}pc_factor_mat_solver_type"] = 'mumps'
+        opts[f"{option_prefix}pc_factor_mat_solver_type"] = 'mumps'
         ksp.setFromOptions()
 
         self.__solver.convergence_criterion = 'residual'

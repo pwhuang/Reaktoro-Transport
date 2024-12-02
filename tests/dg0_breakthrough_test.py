@@ -6,7 +6,7 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
-from retropy.solver import TransientSolver
+from retropy.solver import PETScSolver
 from retropy.benchmarks import TracerBreakthrough
 
 from utility_functions import convergence_rate
@@ -15,7 +15,7 @@ from math import isclose
 import matplotlib.pyplot as plt
 
 
-class DG0BreakthroughTest(TracerBreakthrough, DG0Kernel, TransientSolver):
+class DG0BreakthroughTest(TracerBreakthrough, DG0Kernel, PETScSolver):
     def __init__(self, nx, Pe):
         super().__init__(self.get_mesh_and_markers(nx))
 
@@ -23,6 +23,9 @@ class DG0BreakthroughTest(TracerBreakthrough, DG0Kernel, TransientSolver):
         self.set_flow_field()
         self.generate_solver()
         self.set_solver_parameters(linear_solver="gmres", preconditioner="jacobi")
+
+    def solve_one_step(self):
+        return self._problem.solve_without_matrix_assembly()
 
     def mpl_output(self):
         x_space = self.cell_coord.x.array
@@ -38,8 +41,8 @@ class DG0BreakthroughTest(TracerBreakthrough, DG0Kernel, TransientSolver):
 Pe = 113.0
 
 nx_list = [33, 66]
-dt_list = [1.6e-2, 8.0e-3]
-timesteps = [30, 60]
+dt_list = [2.6e-2, 1.3e-2]
+timesteps = [15, 30]
 err_norms = []
 
 for nx, dt, timestep in zip(nx_list, dt_list, timesteps):

@@ -184,6 +184,11 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
     def add_time_derivatives(self, u, kappa: Any = 1, f_id=0):
         self.tracer_forms[f_id] += kappa * self.d_dt(self.__w, self.__u, u)
 
+    def add_component_time_derivative(self, u, component_name, kappa: Any = 1, f_id=0):
+        idx = self.component_dict[component_name]
+
+        self.tracer_forms[f_id] += self.d_dt(kappa * self.__w[idx], self.__u[idx], u[idx])
+
     def add_explicit_advection(self, u, kappa: Any = 1, marker=0, f_id=0):
         """Adds explicit advection physics to the variational form."""
 

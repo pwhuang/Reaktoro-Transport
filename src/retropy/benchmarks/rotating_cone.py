@@ -63,6 +63,7 @@ class RotatingCone(EllipticTransportBenchmark):
         self.set_component_ics("solute", self.solution_expr)
 
     def add_physics_to_form(self, u, kappa, f_id):
+        self.add_time_derivatives(u)
         self.add_explicit_advection(u, kappa=kappa, marker=0, f_id=f_id)
 
     @staticmethod

@@ -5,7 +5,7 @@ from . import *
 from petsc4py import PETSc
 import numpy as np
 
-class CustomNLSolver(TransientSolver):
+class CustomNLSolver(PETScSolver):
     """A solver class that is used as a mixin for problem classes."""
 
     num_forms = 1

@@ -3,7 +3,7 @@
 
 from . import *
 
-class TransientSolver:
+class PETScSolver:
     """A solver class that is used as a mixin for problem classes."""
 
     num_forms = 1
@@ -17,7 +17,7 @@ class TransientSolver:
         self.__u1 = Function(self.__func_space)
 
         self.add_physics_to_form(self.__u0, kappa=Constant(self.mesh, 1.0), f_id=0)
-        self.add_time_derivatives(self.__u0)
+        
         self.__forms = self.get_forms()
         self.__form = self.__forms[0]
 

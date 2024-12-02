@@ -27,9 +27,6 @@ from .multicomponent_transport_problem import multicomponent_transport_problem
 def set_default_solver_parameters(prm):
     prm.setTolerances(rtol = 1e-12, atol=1e-14, divtol=None, max_it=5000)
 
-from .steady_state_solver import SteadyStateSolver
-from .transient_solver import TransientSolver, LinearProblem
-from .transient_rk2_solver import TransientRK2Solver
-from .electric_field_solver import ElectricFieldSolver
+from .petsc_solver import PETScSolver, LinearProblem
 from .transient_nl_solver import TransientNLSolver
 from .custom_nl_solver import CustomNLSolver

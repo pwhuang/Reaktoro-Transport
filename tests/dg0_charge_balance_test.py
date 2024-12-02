@@ -6,7 +6,7 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
-from retropy.solver import TransientSolver
+from retropy.solver import PETScSolver
 from retropy.manager import XDMFManager
 from retropy.benchmarks import ChargeBalancedDiffusion
 
@@ -15,7 +15,7 @@ from dolfinx.fem import Constant
 
 
 class DG0ChargeBalanceTest(
-    ChargeBalancedDiffusion, DG0Kernel, TransientSolver, XDMFManager
+    ChargeBalancedDiffusion, DG0Kernel, PETScSolver, XDMFManager
 ):
     def __init__(self, nx, t0, is_output=False):
         super().__init__(self.get_mesh_and_markers(nx))

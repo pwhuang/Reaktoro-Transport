@@ -6,7 +6,7 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
-from retropy.solver import SteadyStateSolver
+from retropy.solver import PETScSolver
 from retropy.benchmarks import EllipticTransportBenchmark
 
 from utility_functions import convergence_rate
@@ -14,7 +14,7 @@ from utility_functions import convergence_rate
 from math import isclose
 
 
-class DG0SteadyTransportTest(EllipticTransportBenchmark, DG0Kernel, SteadyStateSolver):
+class DG0SteadyTransportTest(EllipticTransportBenchmark, DG0Kernel, PETScSolver):
     def __init__(self, nx):
         marked_mesh = self.get_mesh_and_markers(nx, "triangle")
         super().__init__(marked_mesh)

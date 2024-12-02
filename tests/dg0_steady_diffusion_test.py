@@ -6,7 +6,7 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
-from retropy.solver import SteadyStateSolver
+from retropy.solver import PETScSolver
 from retropy.benchmarks import DiffusionBenchmark
 
 from utility_functions import convergence_rate
@@ -15,7 +15,7 @@ from dolfinx.fem import Constant
 from math import isclose
 
 
-class DG0SteadyDiffusionTest(DiffusionBenchmark, DG0Kernel, SteadyStateSolver):
+class DG0SteadyDiffusionTest(DiffusionBenchmark, DG0Kernel, PETScSolver):
     def __init__(self, nx):
         marked_mesh = self.get_mesh_and_markers(nx, "triangle")
         super().__init__(marked_mesh)

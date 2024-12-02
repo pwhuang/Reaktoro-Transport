@@ -4,7 +4,7 @@
 from retropy.mesh import MarkedLineMesh
 from retropy.problem import TracerTransportProblem, DOLFIN_EPS
 
-from dolfinx.fem import Function, Constant, assemble_scalar, form
+from dolfinx.fem import FunctionSpace, Function, Constant, assemble_scalar, form
 from ufl.algebra import Abs
 
 import numpy as np
@@ -76,7 +76,8 @@ class TracerBreakthrough(TracerTransportProblem):
         self.set_molecular_diffusivity([1.0 / Peclet_number])
 
         self.mark_component_boundary(
-            {"C": [self.marker_dict["left"]], "outlet": [self.marker_dict["right"]]}
+            {"C": [self.marker_dict["left"]], 
+             "outlet": [self.marker_dict["right"]]}
         )
 
         self.set_component_ics("C", self.initial_expr())
@@ -85,6 +86,7 @@ class TracerBreakthrough(TracerTransportProblem):
         one = Constant(self.mesh, 1.0)
         self.inlet_flux = Constant(self.mesh, -1.0)
 
+        self.add_time_derivatives(u)
         self.add_explicit_advection(u, kappa=one, marker=0)
         self.add_implicit_diffusion("C", kappa=one, marker=0)
 
@@ -92,16 +94,23 @@ class TracerBreakthrough(TracerTransportProblem):
         self.add_outflow_bc(u)
 
     def get_solution(self, t_end):
+        self.interpolation_space = FunctionSpace(self.mesh, ('CG', 2)) 
         expr = self.solution_expr(t_end, L=1.0, R=1.0, v=1.0, D=1.0 / self.Pe)
 
+        self.u_solution = Function(self.interpolation_space)
+        self.u_solution.interpolate(expr)
+
         self.solution = Function(self.comp_func_spaces)
-        self.solution.sub(0).interpolate(expr)
+        self.solution.sub(0).interpolate(self.u_solution)
 
         return self.solution
 
     def get_error_norm(self):
-        comm = self.mesh.comm
-        mass_error = Abs(self.fluid_components.sub(0) - self.solution.sub(0))
-        mass_error_norm = assemble_scalar(form(mass_error * self.dx))
+        u_numerical = Function(self.interpolation_space)
+        u_numerical.interpolate(self.fluid_components.sub(0))
 
-        return comm.allreduce(mass_error_norm, op=MPI.SUM)
+        comm = self.mesh.comm
+        mass_error = u_numerical - self.u_solution
+        mass_error_norm = assemble_scalar(form(mass_error**2 * self.dx))
+
+        return np.sqrt(comm.allreduce(mass_error_norm, op=MPI.SUM))

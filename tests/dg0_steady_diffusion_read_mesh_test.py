@@ -7,7 +7,7 @@ import os
 os.environ['OMP_NUM_THREADS'] = '1'
 
 from retropy.physics import DG0Kernel
-from retropy.solver import SteadyStateSolver
+from retropy.solver import PETScSolver
 from retropy.mesh import XDMFMesh, MarkedRectangleMesh
 from retropy.benchmarks import DiffusionBenchmark
 
@@ -47,7 +47,7 @@ class DiffusionBenchmark(DiffusionBenchmark):
 
         return marked_mesh
 
-class DG0SteadyDiffusionReadMeshTest(DiffusionBenchmark, DG0Kernel, SteadyStateSolver):
+class DG0SteadyDiffusionReadMeshTest(DiffusionBenchmark, DG0Kernel, PETScSolver):
     def __init__(self, filename):
         marked_mesh = self.get_mesh_and_markers(filename, meshname='Grid')
         super().__init__(marked_mesh)
@@ -83,4 +83,4 @@ convergence_rate_m = convergence_rate(err_norms, element_diameters)
 print(convergence_rate_m)
 
 def test_function():
-    assert isclose(convergence_rate_m[0], 1, rel_tol=0.5)
+    assert isclose(convergence_rate_m[0], 1, rel_tol=0.2)

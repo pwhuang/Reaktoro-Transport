@@ -6,14 +6,14 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import CGKernel
-from retropy.solver import SteadyStateSolver
+from retropy.solver import PETScSolver
 from retropy.benchmarks import DiffusionBenchmark
 
 from utility_functions import convergence_rate
 
 from math import isclose
 
-class CGSteadyDiffusionTest(DiffusionBenchmark, CGKernel, SteadyStateSolver):
+class CGSteadyDiffusionTest(DiffusionBenchmark, CGKernel, PETScSolver):
     def __init__(self, nx):
         marked_mesh = self.get_mesh_and_markers(nx, "triangle")
         super().__init__(marked_mesh)
@@ -36,7 +36,8 @@ err_norms = []
 
 for nx in list_of_nx:
     problem = CGSteadyDiffusionTest(nx)
-    problem.solve_transport()
+    problem.solve_one_step()
+    problem.assign_u1_to_u0()
     numerical_solution = problem.get_solution()
     error_norm = problem.get_error_norm()
     err_norms.append(error_norm)

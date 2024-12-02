@@ -6,7 +6,7 @@ import os
 os.environ["OMP_NUM_THREADS"] = "1"
 
 from retropy.physics import DG0Kernel
-from retropy.solver import TransientSolver
+from retropy.solver import PETScSolver
 from retropy.benchmarks import ParticleAttachment
 
 from dolfinx.fem import Function
@@ -18,7 +18,7 @@ import matplotlib.pyplot as plt
 
 
 class DG0ParticleReversibleAttachmentTest(
-    ParticleAttachment, DG0Kernel, TransientSolver
+    ParticleAttachment, DG0Kernel, PETScSolver
 ):
     def __init__(self, nx, Pe, Da_att, Da_det, M, t0):
         super().__init__(self.get_mesh_and_markers(nx))

@@ -12,6 +12,8 @@ from retropy.manager import XDMFManager
 from retropy.benchmarks import DiffusionBenchmark
 
 from dolfinx.fem import Constant
+from utility_functions import convergence_rate
+from math import isclose
 
 
 class DG0ExpSteadyDiffusionTest(
@@ -31,7 +33,7 @@ class DG0ExpSteadyDiffusionTest(
         self.set_problem_bc()
 
         self.generate_solver()
-        self.set_solver_parameters(linear_solver="gmres", preconditioner="jacobi")
+        self.set_solver_parameters(linear_solver="cg", preconditioner="jacobi")
 
         if is_output == True:
             self.generate_output_instance("steady_diffusion_exp")
@@ -45,7 +47,8 @@ class DG0ExpSteadyDiffusionTest(
         )
 
 
-list_of_nx = [10]
+list_of_nx = [10, 20]
+element_diameters = []
 err_norms = []
 
 for i, nx in enumerate(list_of_nx):
@@ -54,9 +57,13 @@ for i, nx in enumerate(list_of_nx):
     problem.get_solution()
     error_norm = problem.get_error_norm()
     err_norms.append(error_norm)
+    element_diameters.append(problem.get_mesh_characterisitic_length())
 
 print(err_norms)
 
+convergence_rate_m = convergence_rate(err_norms, element_diameters)
+print(convergence_rate_m)
+
 
 def test_function():
-    assert err_norms[0] < 1e-1
+    assert isclose(convergence_rate_m[0], 1, rel_tol=0.2)

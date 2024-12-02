@@ -32,6 +32,7 @@ class DG0ExpUpwindAdvectionTest(
     def guess_solution(self):
         self.get_solver_u1().x.array[:] = 0.1 * self.fluid_components.x.array
 
+
 nx = 50
 dt = 1e-2
 timesteps = 100

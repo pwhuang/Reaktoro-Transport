@@ -80,6 +80,7 @@ class ChargeBalancedDiffusion(TracerTransportProblem):
         theta = Constant(self.mesh, 0.5)
         one = Constant(self.mesh, 1.0)
 
+        self.add_time_derivatives(u)
         self.add_implicit_diffusion("Na+", kappa=theta, marker=0)
         self.add_explicit_diffusion("Na+", u, kappa=one - theta, marker=0)
         self.add_implicit_diffusion("Cl-", kappa=theta, marker=0)
