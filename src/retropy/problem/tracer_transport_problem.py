@@ -7,15 +7,8 @@ from . import *
 class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentProperty):
     """A class that solves single-phase tracer transport problems."""
 
-    def __init__(self, marked_mesh, option="cell_centered", periodic_bcs=None):
-        try:
-            super().num_forms
-        except:
-            raise Exception(
-                "num_forms does not exist. Consider inherit a solver class."
-            )
-
-        self.set_mesh(marked_mesh.mesh, option, periodic_bcs)
+    def __init__(self, marked_mesh):
+        self.set_mesh(marked_mesh.mesh)
         self.set_boundary_markers(marked_mesh.boundary_markers)
         self.set_interior_markers(marked_mesh.interior_markers)
         self.set_domain_markers(marked_mesh.domain_markers)
@@ -74,15 +67,17 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
 
         return as_vector([self.fluid_comp_sub[i] for i in range(self.num_component)])
 
-    def initialize_form(self):
+    def initialize_form(self, num_forms=1):
         """"""
+
+        self.num_forms = num_forms
 
         self.__u = TrialFunction(self.comp_func_spaces)
         self.__w = TestFunction(self.comp_func_spaces)
 
         self.tracer_forms = [
             Constant(self.mesh, 0.0) * inner(self.__w, self.__u) * self.dx
-        ] * super().num_forms
+        ] * self.num_forms
 
     def get_trial_function(self):
         return self.__u
@@ -205,6 +200,33 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
 
     def add_explicit_centered_advection(self, u, kappa: Any = 1, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa * self.centered_advection(self.__w, u, marker)
+
+    def add_flux_limited_advection(self, u1, f_id):
+        self.psi_list = []
+
+        if self.mesh.topology.cell_name() == 'interval':
+            for i in range(self.num_component):          
+                self.psi_list.append(Function(self.CG1_space))
+                self.psi_list[i].x.array[:] = 1.0
+        
+        else:
+            raise Exception("Flux limiters in other dimensions are not yet implemented.")
+
+        zero = Constant(self.mesh, 0.0)
+
+        corrected_velocity = as_vector(
+            [
+                psi * self.fluid_velocity if is_mobile else zero * self.fluid_velocity
+                for psi, is_mobile in zip(self.psi_list, self.component_mobility)
+            ]
+        )
+        
+        u0 = self.get_fluid_components()
+        half = Constant(self.mesh, 0.5)
+
+        self.add_time_derivatives(u1, f_id=f_id)
+        self.add_explicit_advection_by_func(u0, corrected_velocity, kappa=-half, marker=0, f_id=f_id)
+        self.add_explicit_downwind_advection_by_func(u1, corrected_velocity, kappa=half, marker=0, f_id=f_id)
 
     def add_explicit_periodic_advection(
         self, u, kappa: Any = 1, marker_l=[], marker_r=[], f_id=0

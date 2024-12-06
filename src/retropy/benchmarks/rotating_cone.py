@@ -69,40 +69,14 @@ class RotatingCone(EllipticTransportBenchmark):
     @staticmethod
     def flux_limiter(r):
         return np.maximum(0.0, np.minimum(1.5, r))
-
-    def add_corrector_to_form(self, u0, u1, f_id):
-        psi_list = []
-        CR_space = FunctionSpace(self.mesh, ('CR', 1))
         
-        for i in range(self.num_component):          
-            psi_list.append(Function(CR_space))
-            psi_list[i].x.array[:] = 1.0
-            
-        self._psi = ufl.as_vector(psi_list)
+    def add_corrector_to_form(self, u1, f_id):
+        # TODO: Implement and test flux-limited advection in 2D.
+        pass
         
-        one = Constant(self.mesh, 1.0)
-
-        corrected_velocity = ufl.as_vector([self._psi[0] * ufl.cos(ufl.pi * self.current_time) * self.fluid_velocity])
-        
-        self.add_explicit_advection_by_func(u0, corrected_velocity, kappa=-one, marker=0, f_id=f_id)
-        self.add_explicit_downwind_advection_by_func(u1, corrected_velocity, kappa=one, marker=0, f_id=f_id)
-
-        w = ufl.TestFunction(CR_space)
-
-        self.delta_u = u1 - u0
-        _np = self._get_sign_tensor(self.advection_velocity, sign=1.0)
-        _nm = self._get_sign_tensor(self.advection_velocity, sign=-1.0)
-
-        self.smoothness_form = form(dot(avg(w), elem_div(jump(_np * self.delta_u), jump(_nm * self.delta_u))[0]) * self.dS)
-        
-    def solve_second_step(self):
-        for i in self.component_mobility_idx:
-            i = i.item()
-            r = np.nan_to_num(assemble_vector(self.smoothness_form).array_w, 1.0)
-            self._psi[i].vector.array_w = self.flux_limiter(r)
-            self._psi[i].x.scatter_forward()
-
-        super().solve_second_step()
+    def solve_limiter_function(self):
+        # TODO: Implement and test flux-limited advection in 2D.
+        pass
 
     def get_solution(self):
         self.solution = Function(self.func_space_list[0])

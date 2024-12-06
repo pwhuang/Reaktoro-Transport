@@ -151,7 +151,7 @@ class ParticleAttachment(TracerTransportProblem):
         self.mark_component_boundary(
             {
                 "C": [self.marker_dict["left"]],
-                "outlet": [self.marker_dict["right"]],
+                "explicit_outlet": [self.marker_dict["right"]],
             }
         )
 
@@ -162,7 +162,7 @@ class ParticleAttachment(TracerTransportProblem):
     def add_physics_to_form(self, u, kappa=1.0, f_id=0):
         self.add_time_derivatives(u)
         self.add_explicit_advection(u, kappa, marker=0, f_id=f_id)
-
+        
         S, C = self.get_trial_function()[1], u[0]  # implicit in S, explicit in C
 
         self.add_mass_source(["C"], [-self.langmuir_kinetics(C, S)], kappa, f_id)
@@ -173,6 +173,24 @@ class ParticleAttachment(TracerTransportProblem):
         self.inlet_flux = Constant(self.mesh, -1.0)
         self.add_component_flux_bc("C", [self.inlet_flux], kappa, f_id)
         self.add_outflow_bc(u, f_id)
+
+    def add_corrector_to_form(self, u, f_id):
+        self.add_flux_limited_advection(u, f_id)
+
+    @staticmethod
+    def flux_limiter(r):
+        return np.maximum(0.0, np.minimum(2.0*r, np.minimum(2.0, (1.0 + r) / (2.0))))  # MC
+        # return np.maximum(0.0, np.minimum(1.0, r))  # minmod
+
+    def solve_limiter_function(self):
+        u_star = self.get_solver_u1().x.array
+        u_n = self.fluid_components.x.array
+        delta_u = (u_star - u_n).reshape(-1, self.num_component).T
+        
+        for i, mobility in enumerate(self.component_mobility):
+            if mobility==True:
+                r = np.nan_to_num(delta_u[i][:-1] / delta_u[i][1:], nan=0.0)        
+                self.psi_list[i].x.array[1:-1] = self.flux_limiter(r)
 
     def generate_solution(self):
         x_space = self.cell_coord.x.array

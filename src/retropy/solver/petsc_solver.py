@@ -2,11 +2,10 @@
 # SPDX-License-Identifier: LGPL-2.1-or-later
 
 from . import *
+from dolfinx.fem.petsc import LinearProblem
 
 class PETScSolver:
     """A solver class that is used as a mixin for problem classes."""
-
-    num_forms = 1
 
     def generate_solver(self, **kwargs):
         """"""
@@ -16,29 +15,33 @@ class PETScSolver:
         self.__u0 = self.get_fluid_components()
         self.__u1 = Function(self.__func_space)
 
-        self.add_physics_to_form(self.__u0, kappa=Constant(self.mesh, 1.0), f_id=0)
+        one = Constant(self.mesh, 1.0)
+
+        self.add_physics_to_form(self.__u0, kappa=one, f_id=0)
+
+        if self.num_forms > 1:
+            self.add_corrector_to_form(self.__u1, f_id=1)
         
-        self.__forms = self.get_forms()
-        self.__form = self.__forms[0]
+        self._problems = []
 
-        a, L = lhs(self.__form), rhs(self.__form)
-
-        self._problem = LinearProblem(a, L, self.get_dirichlet_bcs(), self.__u1)
+        for form in self.get_forms():
+            a, L = lhs(form), rhs(form)
+            self._problems.append(LinearProblem(a, L, self.get_dirichlet_bcs(), self.__u1))
 
     def get_solver(self):
-        return self._problem.solver
+        return self._problems[0].solver
 
-    def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi'):
-        prm = self._problem.solver
+    def set_solver_parameters(self, linear_solver='gmres', preconditioner='jacobi', id=0):
+        prm = self._problems[id].solver
         prm.setType(linear_solver)
         prm.getPC().setType(preconditioner)
 
         set_default_solver_parameters(prm)
 
         return prm
-
+    
     def solve_one_step(self):
-        return self._problem.solve()
+        return [problem.solve() for problem in self._problems]
 
     def get_solver_u1(self):
         return self.__u1
@@ -53,7 +56,9 @@ class PETScSolver:
         """"""
 
         self.dt.value = dt_val
-        self._problem.assemble_A()
+        
+        for problem in self._problems:
+            problem.assemble_A()
 
         for _ in range(timesteps):
             self.solve_one_step()

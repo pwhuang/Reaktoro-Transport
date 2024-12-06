@@ -27,6 +27,13 @@ class DG0ParticleReversibleAttachmentTest(
         self.set_flow_field()
         self.generate_solver()
         self.set_solver_parameters(linear_solver="gmres", preconditioner="jacobi")
+        
+        self.C_of_t = []
+        self.t_space = []
+
+    def save_to_file(self, time):
+        self.t_space.append(time.copy())
+        self.C_of_t.append(self.fluid_components.x.array.reshape(-1, 2).T[0].copy())
 
     def generate_solution(self):
         x_space = self.cell_coord.x.array
@@ -44,16 +51,31 @@ class DG0ParticleReversibleAttachmentTest(
         self.solution.x.array[:] = solution
         self.solution.x.scatter_forward()
 
+        self.C_btc, _ = self.reversible_attachment([1.0], self.t_space, t0, M, Da_att, Da_det)
+        self.C_btc = self.C_btc[0]
+
+    def get_btc_error_norm(self):
+        return np.sqrt(np.sum((np.array(self.C_of_t)[:, -1] - self.C_btc)**2 * self.dt.value))
+
     def mpl_output(self):
         x_space = self.cell_coord.x.array
         numerical_solution = self.fluid_components.x.array.reshape(-1, 2).T
         analytical_solution = self.solution.x.array.reshape(-1, 2).T
 
-        _, ax = plt.subplots(1, 1)
-        ax.plot(x_space, analytical_solution[0], lw=3, c="C0")
-        ax.plot(x_space, analytical_solution[1], lw=3, c="C0")
-        ax.plot(x_space, numerical_solution[0], ls=(0, (5, 5)), lw=2, c="C1")
-        ax.plot(x_space, numerical_solution[1], ls=(0, (5, 5)), lw=2, c="C2")
+        _, ax = plt.subplots(1, 2, figsize=(10, 5))
+        ax[0].plot(x_space, analytical_solution[0], lw=3, c="C0", alpha=0.7, label='analytical, C')
+        ax[0].plot(x_space, analytical_solution[1], lw=3, c="C0", alpha=0.7, label='analytical, S')
+        ax[0].plot(x_space, numerical_solution[0], ls=(0, (3, 3)), lw=2, c="C1", label='numerical, C')
+        ax[0].plot(x_space, numerical_solution[1], ls=(0, (3, 3)), lw=2, c="C2", label='numerical, S')
+        ax[0].set_xlabel('Location (-)')
+        ax[0].legend()
+
+        ax[1].plot(self.t_space, self.C_btc, label='analytical')
+        ax[1].plot(self.t_space, np.array(self.C_of_t)[:, -1], label='numerical')
+        ax[1].set_xlabel('PV (-)')
+        ax[1].legend()
+        ax[1].set_title('Breakthrough curve')
+        plt.tight_layout()
         plt.show()
 
 
@@ -61,7 +83,7 @@ if __name__ == "__main__":
     Pe, Da_att, Da_det, M, t0 = np.inf, 5.5, 1.3, 2.2, 1.0
 
     nx_list = [33, 66]
-    dt_list = [2.0e-2, 1.0e-2]
+    dt_list = [2.e-2, 1.e-2]
     timesteps = [50, 100]
     err_norms = []
 
@@ -69,10 +91,10 @@ if __name__ == "__main__":
         problem = DG0ParticleReversibleAttachmentTest(nx, Pe, Da_att, Da_det, M, t0)
         problem.solve_transport(dt_val=dt, timesteps=timestep)
         problem.inlet_flux.value = 0.0
-        problem.solve_transport(dt_val=dt, timesteps=int(0.5 * timestep))
+        problem.solve_transport(dt_val=dt, timesteps=int(6.0 * timestep))
 
         problem.generate_solution()
-        error_norm = problem.get_error_norm()
+        error_norm = problem.get_btc_error_norm()
         err_norms.append(error_norm)
 
         # problem.mpl_output()

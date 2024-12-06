@@ -7,7 +7,7 @@ import numpy as np
 class TransportProblemBase:
     """Base class for all problems that use FeNiCs."""
 
-    def set_mesh(self, mesh, option='cell_centered', periodic_bcs=None):
+    def set_mesh(self, mesh):
         """Setup mesh and define mesh related quantities."""
 
         self.mesh = mesh
@@ -16,8 +16,8 @@ class TransportProblemBase:
         self.facet_area = FacetArea(self.mesh)
         self.cell_volume = CellVolume(self.mesh)
 
-        self.set_periodic_bcs(periodic_bcs)
-        self.__init_TPFA_recipe(option)
+        self.set_periodic_bcs(bcs=None)
+        self.__init_TPFA_recipe(option='cell_centered')
 
     def __init_TPFA_recipe(self, option):
         # TODO: Find a better name for this method.
