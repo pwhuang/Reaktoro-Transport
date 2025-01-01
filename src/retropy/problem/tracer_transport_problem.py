@@ -165,24 +165,24 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
 
     def add_outflow_bc(self, u, f_id=0):
         """"""
-        
+
         for marker in self.__boundary_dict.get("outlet", []):
             self.tracer_forms[f_id] += self.advection_outflow_bc(
                 self.__w, self.__u, marker
             )
-        
+
         for marker in self.__boundary_dict.get("explicit_outlet", []):
-            self.tracer_forms[f_id] += self.advection_outflow_bc(
-                self.__w, u, marker
-            )
-        
+            self.tracer_forms[f_id] += self.advection_outflow_bc(self.__w, u, marker)
+
     def add_time_derivatives(self, u, kappa: Any = 1, f_id=0):
         self.tracer_forms[f_id] += kappa * self.d_dt(self.__w, self.__u, u)
 
     def add_component_time_derivative(self, u, component_name, kappa: Any = 1, f_id=0):
         idx = self.component_dict[component_name]
 
-        self.tracer_forms[f_id] += self.d_dt(kappa * self.__w[idx], self.__u[idx], u[idx])
+        self.tracer_forms[f_id] += self.d_dt(
+            kappa * self.__w[idx], self.__u[idx], u[idx]
+        )
 
     def add_explicit_advection(self, u, kappa: Any = 1, marker=0, f_id=0):
         """Adds explicit advection physics to the variational form."""
@@ -193,10 +193,16 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
         self.tracer_forms[f_id] += kappa * self.downwind_advection(self.__w, u, marker)
 
     def add_explicit_advection_by_func(self, u, func, kappa: Any = 1, marker=0, f_id=0):
-        self.tracer_forms[f_id] += kappa * self.advection_by_func(self.__w, u, func, marker)
+        self.tracer_forms[f_id] += kappa * self.advection_by_func(
+            self.__w, u, func, marker
+        )
 
-    def add_explicit_downwind_advection_by_func(self, u, func, kappa: Any = 1, marker=0, f_id=0):
-        self.tracer_forms[f_id] += kappa * self.downwind_advection_by_func(self.__w, u, func, marker)
+    def add_explicit_downwind_advection_by_func(
+        self, u, func, kappa: Any = 1, marker=0, f_id=0
+    ):
+        self.tracer_forms[f_id] += kappa * self.downwind_advection_by_func(
+            self.__w, u, func, marker
+        )
 
     def add_explicit_centered_advection(self, u, kappa: Any = 1, marker=0, f_id=0):
         self.tracer_forms[f_id] += kappa * self.centered_advection(self.__w, u, marker)
@@ -204,13 +210,15 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
     def add_flux_limited_advection(self, u1, f_id):
         self.psi_list = []
 
-        if self.mesh.topology.cell_name() == 'interval':
-            for i in range(self.num_component):          
+        if self.mesh.topology.cell_name() == "interval":
+            for i in range(self.num_component):
                 self.psi_list.append(Function(self.CG1_space))
                 self.psi_list[i].x.array[:] = 1.0
-        
+
         else:
-            raise Exception("Flux limiters in other dimensions are not yet implemented.")
+            raise Exception(
+                "Flux limiters in other dimensions are not yet implemented."
+            )
 
         zero = Constant(self.mesh, 0.0)
 
@@ -220,13 +228,16 @@ class TracerTransportProblem(TransportProblemBase, MassBalanceBase, ComponentPro
                 for psi, is_mobile in zip(self.psi_list, self.component_mobility)
             ]
         )
-        
+
         u0 = self.get_fluid_components()
         half = Constant(self.mesh, 0.5)
 
-        self.add_time_derivatives(u1, f_id=f_id)
-        self.add_explicit_advection_by_func(u0, corrected_velocity, kappa=-half, marker=0, f_id=f_id)
-        self.add_explicit_downwind_advection_by_func(u1, corrected_velocity, kappa=half, marker=0, f_id=f_id)
+        self.add_explicit_advection_by_func(
+            u0, corrected_velocity, kappa=-half, marker=0, f_id=f_id
+        )
+        self.add_explicit_downwind_advection_by_func(
+            u1, corrected_velocity, kappa=half, marker=0, f_id=f_id
+        )
 
     def add_explicit_periodic_advection(
         self, u, kappa: Any = 1, marker_l=[], marker_r=[], f_id=0

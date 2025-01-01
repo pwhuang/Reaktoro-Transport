@@ -18,7 +18,7 @@ class DG0OperatorSplittingTest(DG0ParticleReversibleAttachmentTest, PETScSolver)
     def define_problem(self, Pe, Da_att, Da_det, M, t0):
         super().define_problem(Pe, Da_att, Da_det, M, t0)
         self.initialize_form(num_forms=2)
-    
+
     def langmuir_kinetics(self, C, S):
         return Constant(self.mesh, 0.0)
 
@@ -55,31 +55,31 @@ class DG0OperatorSplittingTest(DG0ParticleReversibleAttachmentTest, PETScSolver)
         self.solve_reaction(self.get_solver_u1(), kappa=0.5)
 
 
-if __name__ == "__main__":
-    Pe, Da_att, Da_det, M, t0 = np.inf, 5.5, 1.3, 1.6, 1.0
+Pe, Da_att, Da_det, M, t0 = np.inf, 5.5, 1.3, 1.6, 1.0
 
-    nx_list = [33, 66]
-    dt_list = [2.e-2, 1.e-2]
-    timesteps = [50, 100]
-    err_norms = []
+nx_list = [33, 66]
+dt_list = [2.0e-2, 1.0e-2]
+timesteps = [50, 100]
+err_norms = []
 
-    for nx, dt, timestep in zip(nx_list, dt_list, timesteps):
-        problem = DG0OperatorSplittingTest(nx, Pe, Da_att, Da_det, M, t0)
-        problem.solve_transport(dt_val=dt, timesteps=timestep)
-        problem.inlet_flux.value = 0.0
-        problem.solve_transport(dt_val=dt, timesteps=int(6.0 * timestep))
+for nx, dt, timestep in zip(nx_list, dt_list, timesteps):
+    problem = DG0OperatorSplittingTest(nx, Pe, Da_att, Da_det, M, t0)
+    problem.solve_transport(dt_val=dt, timesteps=timestep)
+    problem.inlet_flux.value = 0.0
+    problem.solve_transport(dt_val=dt, timesteps=int(6.0 * timestep))
 
-        problem.generate_solution()
-        error_norm = problem.get_error_norm()
-        err_norms.append(error_norm)
+    problem.generate_solution()
+    error_norm = problem.get_error_norm()
+    err_norms.append(error_norm)
 
-        problem.mpl_output()
+    # problem.mpl_output()
 
-    print(err_norms)
+print(err_norms)
 
-    convergence_rate_m = convergence_rate(err_norms, dt_list)
-    print(convergence_rate_m)
+convergence_rate_m = convergence_rate(err_norms, dt_list)
+print(convergence_rate_m)
 
-    def test_function():
-        # TODO: How to test this properly? Why 1.5?
-        assert isclose(convergence_rate_m[0], 1.5, rel_tol=0.2) 
+
+def test_function():
+    # TODO: How to test this properly? Why 1.5?
+    assert isclose(convergence_rate_m[0], 1.5, rel_tol=0.2)
