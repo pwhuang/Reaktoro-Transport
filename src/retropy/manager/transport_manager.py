@@ -23,6 +23,7 @@ class TransportManager(TracerTransportProblemExp, DG0Kernel):
         theta = Constant(self.mesh, theta_val)
         one = Constant(self.mesh, 1.0)
 
+        self.add_time_derivatives(u, kappa=one, f_id=f_id)
         self.add_explicit_advection(u, kappa=one, marker=0, f_id=f_id)
 
         for component in self.component_dict.keys():

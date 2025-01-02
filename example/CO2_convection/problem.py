@@ -26,8 +26,8 @@ class BoundaryEquilibriumProblem(MassBalanceBase, ReactionManager):
         self.set_solvent(solvent)
         self.H_idx = self.component_dict['H+']
 
-    def set_chem_system(self):
-        db = rkt.SupcrtDatabase("supcrt07")
+    def set_chem_system(self, database="supcrt07"):
+        db = rkt.SupcrtDatabase(database)
         aqueous_components = self.component_str + ' ' + self.solvent_name
 
         self.aqueous_phase = rkt.AqueousPhase(aqueous_components)
@@ -35,7 +35,7 @@ class BoundaryEquilibriumProblem(MassBalanceBase, ReactionManager):
         self.chem_system = rkt.ChemicalSystem(db, self.aqueous_phase, self.gaseous_phase)
 
     def set_activity_models(self):
-        self.aqueous_phase.set(rkt.chain(rkt.ActivityModelHKF(), 
+        self.aqueous_phase.set(rkt.chain(rkt.ActivityModelHKF(),
                                          rkt.ActivityModelDrummond("CO2")))
         self.gaseous_phase.set(rkt.ActivityModelPengRobinson())
 
@@ -68,7 +68,7 @@ class ReactiveTransportManager(ReactiveTransportManager):
         self.boundary_cell_idx, self.dof_idx = self.mark_inflow_boundary_cells()
 
     def set_activity_models(self):
-        self.aqueous_phase.set(rkt.chain(rkt.ActivityModelHKF(), 
+        self.aqueous_phase.set(rkt.chain(rkt.ActivityModelHKF(),
                                          rkt.ActivityModelDrummond("CO2")))
 
     def _solve_chem_equi_over_dofs(self, pressure, fluid_comp):

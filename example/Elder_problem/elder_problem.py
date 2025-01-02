@@ -7,7 +7,7 @@ os.environ['OMP_NUM_THREADS'] = '1'
 from retropy.mesh import MarkedRectangleMesh
 from retropy.problem import TracerTransportProblem, DarcyFlowUzawa
 from retropy.physics import DG0Kernel
-from retropy.solver import TransientSolver
+from retropy.solver import PETScSolver
 from retropy.manager import XDMFManager as OutputManager
 
 from dolfinx.fem import Constant, Function
@@ -34,12 +34,12 @@ class MeshFactory(MarkedRectangleMesh):
         right_marker = lambda x: np.isclose(x[0], self.xmax, atol=boundary_eps)
         top_marker = lambda x: np.isclose(x[1], self.ymax, atol=boundary_eps)
         left_marker = lambda x: np.isclose(x[0], self.xmin, atol=boundary_eps)
-        
+
         bottom_inner_marker = lambda x: np.logical_and.reduce(
             (np.isclose(x[1], self.ymin, atol=boundary_eps),
             x[0] < 3.0 + boundary_eps,
             x[0] > 1.0 - boundary_eps))
-        
+
         bottom_outer_marker = lambda x: np.logical_and(
             np.isclose(x[1], self.ymin, atol=boundary_eps),
             np.logical_or(x[0] > 3.0 - boundary_eps,
@@ -75,10 +75,10 @@ class FlowManager(DarcyFlowUzawa):
         self.generate_residual_form()
         self.fluid_pressure.interpolate(lambda x: 0.0 * x[0])
         self.set_pressure_bc({})
-        
+
         zero = Constant(self.mesh, ScalarType(0.0))
         self.add_momentum_source([as_vector([zero, self.fluid_components[0]])])
-        
+
         velocity_bc = Function(self.velocity_func_space)
         velocity_bc.x.array[:] = 0.0
         velocity_bc.x.scatter_forward()
@@ -92,7 +92,7 @@ class FlowManager(DarcyFlowUzawa):
         self.assemble_matrix()
         self.set_flow_solver_params()
 
-class TransportManager(TracerTransportProblem, DG0Kernel, TransientSolver):
+class TransportManager(TracerTransportProblem, DG0Kernel, PETScSolver):
     def __init__(self, nx, ny, mesh_type, mesh_shape):
         marked_mesh = MeshFactory(nx, ny, mesh_type, mesh_shape)
         TracerTransportProblem.__init__(self, marked_mesh)
@@ -100,23 +100,24 @@ class TransportManager(TracerTransportProblem, DG0Kernel, TransientSolver):
     def define_problem(self, Rayleigh_number=400.0):
         self.set_components('Temp')
         self.set_component_fe_space()
-        self.initialize_form()
+        self.initialize_form(num_forms=1)
 
         self.set_molecular_diffusivity([1.0])
-        self.mark_component_boundary({'Temp': [self.marker_dict['top'], 
+        self.mark_component_boundary({'Temp': [self.marker_dict['top'],
                                                self.marker_dict['bottom_inner']]})
 
-        self.temp_bc = [Constant(self.mesh, ScalarType(0.0)), 
+        self.temp_bc = [Constant(self.mesh, ScalarType(0.0)),
                         Constant(self.mesh, ScalarType(1.0))]
 
         self.set_component_ics('Temp', lambda x: 0.0 * x[0])
         self.Ra = Constant(self.mesh, Rayleigh_number)
 
     def add_physics_to_form(self, u, kappa, f_id=0):
+        self.add_time_derivatives(u, kappa, f_id=f_id)
         self.add_explicit_advection(u, kappa=kappa, marker=0, f_id=f_id)
-        
+
         for component in self.component_dict.keys():
-            self.add_implicit_diffusion(component, kappa=kappa, marker=0)
+            self.add_implicit_diffusion(component, kappa=kappa, marker=0, f_id=f_id)
             self.add_component_diffusion_bc(component, Constant(self.mesh, ScalarType(1e2)),\
                                             self.temp_bc, kappa, f_id)
 
@@ -140,7 +141,7 @@ class ElderProblem(TransportManager, FlowManager, OutputManager):
 
     def __init__(self, nx, ny, mesh_type, mesh_shape):
         TransportManager.__init__(self, nx, ny, mesh_type, mesh_shape)
-        self.define_problem()        
+        self.define_problem()
         self.setup_flow_solver()
         self.setup_transport_solver()
         self.generate_output_instance('elder_problem')
